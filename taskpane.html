@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Essay Reviewer</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js" type="text/javascript"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --ink: #1a1a2e;
+      --ink-soft: #4a4a6a;
+      --ink-muted: #8888aa;
+      --paper: #fafaf8;
+      --paper-dark: #f0efe9;
+      --accent: #c84b31;
+      --accent-light: #f9ede9;
+      --success: #2d6a4f;
+      --success-light: #e8f5ee;
+      --border: #e2e0d8;
+      --shadow: 0 2px 12px rgba(26,26,46,0.08);
+    }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--paper);
+      color: var(--ink);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .header {
+      background: var(--ink);
+      padding: 16px;
+      position: relative;
+      overflow: hidden;
+    }
+    .header::before {
+      content: '';
+      position: absolute;
+      top: -20px; right: -20px;
+      width: 90px; height: 90px;
+      border-radius: 50%;
+      background: rgba(200,75,49,0.2);
+    }
+    .header-title {
+      font-family: 'DM Serif Display', serif;
+      font-size: 18px;
+      color: #fff;
+      position: relative;
+    }
+    .header-subtitle {
+      font-size: 11px;
+      color: rgba(255,255,255,0.5);
+      margin-top: 2px;
+      position: relative;
+    }
+
+    .doc-pill {
+      margin: 10px;
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: var(--shadow);
+    }
+    .doc-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: #34a853;
+      flex-shrink: 0;
+    }
+    .doc-dot.empty { background: #fbbc05; }
+    .doc-text { font-size: 11px; color: var(--ink-soft); }
+    .doc-text strong { color: var(--ink); }
+
+    .section {
+      margin: 0 10px 10px;
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+    .section-header {
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    .section-label {
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--ink-muted);
+    }
+    .section-body { padding: 10px 12px; }
+
+    /* API Key input */
+    .key-input-wrap { position: relative; }
+    .key-input {
+      width: 100%;
+      padding: 8px 36px 8px 10px;
+      border: 1.5px solid var(--border);
+      border-radius: 6px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 12px;
+      background: var(--paper);
+      color: var(--ink);
+      transition: border-color 0.15s;
+    }
+    .key-input:focus { outline: none; border-color: var(--accent); background: white; }
+    .key-status {
+      position: absolute;
+      right: 8px; top: 50%;
+      transform: translateY(-50%);
+      font-size: 14px;
+    }
+    .save-key-btn {
+      margin-top: 6px;
+      width: 100%;
+      padding: 7px;
+      background: var(--ink);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+    .save-key-btn:hover { opacity: 0.85; }
+
+    /* Intensity */
+    .intensity-row { display: flex; gap: 5px; }
+    .itab {
+      flex: 1;
+      padding: 7px 4px 5px;
+      border: 1.5px solid var(--border);
+      border-radius: 7px;
+      background: var(--paper);
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.15s;
+      user-select: none;
+    }
+    .itab:hover { border-color: var(--accent); }
+    .itab.active { border-color: var(--accent); background: var(--accent-light); }
+    .itab-icon { font-size: 16px; display: block; margin-bottom: 2px; }
+    .itab-label { font-size: 10px; font-weight: 600; color: var(--ink-soft); text-transform: uppercase; letter-spacing: 0.4px; }
+    .itab.active .itab-label { color: var(--accent); }
+
+    /* Focus chips */
+    .focus-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+    .fchip {
+      display: flex; align-items: center; gap: 6px;
+      padding: 6px 8px;
+      border: 1.5px solid var(--border);
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.12s;
+      user-select: none;
+      background: var(--paper);
+    }
+    .fchip:hover { border-color: var(--accent); }
+    .fchip.on { border-color: var(--accent); background: var(--accent-light); }
+    .fchip input { display: none; }
+    .fchip-icon { font-size: 13px; flex-shrink: 0; }
+    .fchip-text { font-size: 11px; font-weight: 500; color: var(--ink-soft); }
+    .fchip.on .fchip-text { color: var(--accent); }
+
+    /* Style nudge */
+    .style-nudge {
+      margin: 0 10px 10px;
+      padding: 9px 12px;
+      background: linear-gradient(135deg, #1a1a2e, #2d2d50);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+    .style-nudge:hover { opacity: 0.88; }
+    .style-nudge-text { font-size: 11px; color: rgba(255,255,255,0.8); }
+    .style-nudge-text strong { color: #fff; font-size: 12px; display: block; margin-bottom: 1px; }
+    .style-nudge-arrow { color: rgba(255,255,255,0.4); font-size: 16px; }
+
+    /* Review button */
+    .review-btn {
+      display: block;
+      width: calc(100% - 20px);
+      margin: 0 10px 10px;
+      padding: 12px;
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 9px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .review-btn:hover:not(:disabled) {
+      background: #b03e28;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 14px rgba(200,75,49,0.35);
+    }
+    .review-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+    /* Progress */
+    .progress-wrap {
+      margin: -4px 10px 8px;
+      height: 3px;
+      background: var(--border);
+      border-radius: 2px;
+      display: none;
+      overflow: hidden;
+    }
+    .progress-bar {
+      height: 100%;
+      background: var(--accent);
+      border-radius: 2px;
+      animation: progress 30s linear forwards;
+    }
+    @keyframes progress { 0% { width: 0%; } 85% { width: 88%; } 100% { width: 95%; } }
+
+    /* Status */
+    .status {
+      margin: 0 10px 10px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      display: none;
+      line-height: 1.45;
+    }
+    .status.loading { background: #eef2ff; color: #3730a3; border: 1px solid #c7d2fe; display: flex; align-items: center; gap: 8px; }
+    .status.success { background: var(--success-light); color: var(--success); border: 1px solid #b7dfbf; }
+    .status.error { background: var(--accent-light); color: var(--accent); border: 1px solid #f5c6c4; }
+
+    .spinner {
+      width: 13px; height: 13px;
+      border: 2px solid #c7d2fe;
+      border-top-color: #3730a3;
+      border-radius: 50%;
+      animation: spin 0.75s linear infinite;
+      flex-shrink: 0;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Style modal overlay */
+    .overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(26,26,46,0.6);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+    .overlay.open { display: flex; }
+    .modal {
+      background: white;
+      border-radius: 12px;
+      padding: 18px;
+      width: 100%;
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+    .modal-title { font-family: 'DM Serif Display', serif; font-size: 17px; margin-bottom: 4px; }
+    .modal-sub { font-size: 11px; color: var(--ink-muted); margin-bottom: 12px; }
+    .tip { background: linear-gradient(135deg,#1a1a2e,#2d2d50); border-radius: 8px; padding: 10px 12px; font-size: 11px; color: rgba(255,255,255,0.8); line-height: 1.6; margin-bottom: 12px; }
+    .tip strong { color: white; }
+    textarea {
+      width: 100%;
+      min-height: 160px;
+      padding: 9px 11px;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 12px;
+      color: var(--ink);
+      background: var(--paper);
+      resize: vertical;
+      line-height: 1.6;
+      transition: border-color 0.15s;
+    }
+    textarea:focus { outline: none; border-color: var(--accent); background: white; }
+    textarea::placeholder { color: var(--ink-muted); }
+    .modal-btns { display: flex; gap: 8px; margin-top: 10px; }
+    .mbtn {
+      flex: 1; padding: 10px;
+      border: none; border-radius: 7px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px; font-weight: 600;
+      cursor: pointer; transition: opacity 0.15s;
+    }
+    .mbtn:hover { opacity: 0.85; }
+    .mbtn-primary { background: var(--accent); color: white; }
+    .mbtn-secondary { background: var(--paper-dark); color: var(--ink-soft); }
+    .saved-msg { text-align: center; color: var(--success); font-size: 12px; font-weight: 600; margin-top: 8px; display: none; }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-title">Essay Reviewer</div>
+    <div class="header-subtitle">AI feedback · your voice · tracked changes</div>
+  </div>
+
+  <!-- Doc info -->
+  <div class="doc-pill">
+    <div class="doc-dot" id="docDot"></div>
+    <div class="doc-text" id="docText">Loading document…</div>
+  </div>
+
+  <!-- API Key -->
+  <div class="section" id="keySection">
+    <div class="section-header"><div class="section-label">Anthropic API Key</div></div>
+    <div class="section-body">
+      <div class="key-input-wrap">
+        <input type="password" class="key-input" id="apiKeyInput" placeholder="sk-ant-api03-…">
+        <span class="key-status" id="keyStatus"></span>
+      </div>
+      <button class="save-key-btn" onclick="saveApiKey()">Save Key</button>
+    </div>
+  </div>
+
+  <!-- Intensity -->
+  <div class="section">
+    <div class="section-header"><div class="section-label">Review Depth</div></div>
+    <div class="section-body">
+      <div class="intensity-row">
+        <div class="itab" data-val="light" onclick="setIntensity(this)">
+          <span class="itab-icon">💬</span><span class="itab-label">Light</span>
+        </div>
+        <div class="itab active" data-val="balanced" onclick="setIntensity(this)">
+          <span class="itab-icon">⚖️</span><span class="itab-label">Balanced</span>
+        </div>
+        <div class="itab" data-val="thorough" onclick="setIntensity(this)">
+          <span class="itab-icon">🔬</span><span class="itab-label">Thorough</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Focus areas -->
+  <div class="section">
+    <div class="section-header"><div class="section-label">Focus Areas</div></div>
+    <div class="section-body">
+      <div class="focus-grid">
+        <label class="fchip" onclick="toggleChip(this)">
+          <input type="checkbox" value="thesis and argument"><span class="fchip-icon">🎯</span><span class="fchip-text">Thesis</span>
+        </label>
+        <label class="fchip" onclick="toggleChip(this)">
+          <input type="checkbox" value="evidence and examples"><span class="fchip-icon">📚</span><span class="fchip-text">Evidence</span>
+        </label>
+        <label class="fchip" onclick="toggleChip(this)">
+          <input type="checkbox" value="structure and flow"><span class="fchip-icon">🏗️</span><span class="fchip-text">Structure</span>
+        </label>
+        <label class="fchip" onclick="toggleChip(this)">
+          <input type="checkbox" value="writing style and voice"><span class="fchip-icon">✍️</span><span class="fchip-text">Style</span>
+        </label>
+        <label class="fchip" onclick="toggleChip(this)">
+          <input type="checkbox" value="grammar and mechanics"><span class="fchip-icon">✅</span><span class="fchip-text">Grammar</span>
+        </label>
+        <label class="fchip" onclick="toggleChip(this)">
+          <input type="checkbox" value="citations and referencing"><span class="fchip-icon">📎</span><span class="fchip-text">Citations</span>
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <!-- Style nudge -->
+  <div class="style-nudge" onclick="openStyleModal()">
+    <div class="style-nudge-text">
+      <strong>✍️ My Commenting Style</strong>
+      Add examples to personalise feedback
+    </div>
+    <div class="style-nudge-arrow">›</div>
+  </div>
+
+  <!-- Review button -->
+  <button class="review-btn" id="reviewBtn" onclick="startReview()">✨ Review This Essay</button>
+
+  <!-- Progress -->
+  <div class="progress-wrap" id="progressWrap"><div class="progress-bar" id="progressBar"></div></div>
+
+  <!-- Status -->
+  <div class="status" id="status"></div>
+
+  <!-- Style modal -->
+  <div class="overlay" id="styleOverlay">
+    <div class="modal">
+      <div class="modal-title">✍️ My Commenting Style</div>
+      <div class="modal-sub">Teach the AI to sound like you.</div>
+      <div class="tip">
+        <strong>How it works:</strong> Paste 5–10 real comments you've written on past essays. The AI studies your tone and mimics it on every review.
+      </div>
+      <textarea id="styleExamples" placeholder="Paste your real comments here, one per line:
+
+The argument here is interesting but needs a specific example.
+Watch your comma splices — I've flagged this before.
+Strong opening sentence! The hook really works.
+You've summarised the source but I want to know what YOU think.
+This is too vague. What exactly do you mean by 'society'?"></textarea>
+      <div class="modal-btns">
+        <button class="mbtn mbtn-secondary" onclick="closeStyleModal()">Cancel</button>
+        <button class="mbtn mbtn-primary" onclick="saveStyle()">💾 Save Style</button>
+      </div>
+      <div class="saved-msg" id="styleSaved">✅ Style saved!</div>
+    </div>
+  </div>
+
+  <script src="taskpane.js"></script>
+</body>
+</html>
