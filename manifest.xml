@@ -16,6 +16,7 @@
   <SupportUrl DefaultValue="https://example.com"/>
   <AppDomains>
     <AppDomain>https://api.anthropic.com</AppDomain>
+    <AppDomain>https://meknowscode.github.io</AppDomain>
   </AppDomains>
 
   <Hosts>
