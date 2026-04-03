@@ -296,13 +296,20 @@ async function applyFeedback(rawFeedback) {
 async function applyTrackedChanges(suggestions) {
   let applied = 0;
 
+  // Step 1: Enable track changes FIRST in its own sync
+  try {
+    await Word.run(async function(context) {
+      context.document.changeTrackingMode = Word.ChangeTrackingMode.trackAll;
+      await context.sync();
+    });
+  } catch(e) {
+    console.log('Could not enable track changes:', e.message);
+  }
+
+  // Step 2: Apply all replacements — track changes is now active
   for (const s of suggestions) {
     try {
       await Word.run(async function(context) {
-        // Enable track changes
-        context.document.changeTrackingMode = Word.ChangeTrackingMode.trackAll;
-
-        // Search for the text
         const results = context.document.body.search(s.find, {
           matchCase: true,
           matchWholeWord: false
@@ -311,7 +318,6 @@ async function applyTrackedChanges(suggestions) {
         await context.sync();
 
         if (results.items.length > 0) {
-          // Apply replacement to all occurrences — tracked changes captures each one
           results.items.forEach(function(range) {
             range.insertText(s.replace, Word.InsertLocation.replace);
           });
@@ -324,7 +330,7 @@ async function applyTrackedChanges(suggestions) {
     }
   }
 
-  // Turn off track changes after applying
+  // Step 3: Turn off track changes AFTER all replacements
   try {
     await Word.run(async function(context) {
       context.document.changeTrackingMode = Word.ChangeTrackingMode.off;
