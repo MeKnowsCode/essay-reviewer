@@ -186,7 +186,7 @@ async function callClaude(essayText) {
   const focusAreas = getFocusAreas();
   const prompt = buildPrompt(essayText, focusAreas, intensity, styleExamples);
 
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
+  const response = await fetch('https://sprightly-cannoli-4b4558.netlify.app/.netlify/functions/proxy', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
