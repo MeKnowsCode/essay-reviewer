@@ -296,48 +296,40 @@ async function applyFeedback(rawFeedback) {
 async function applyTrackedChanges(suggestions) {
   let applied = 0;
 
-  // Step 1: Enable track changes FIRST in its own sync
   try {
     await Word.run(async function(context) {
+      // Step 1: Enable track changes
       context.document.changeTrackingMode = Word.ChangeTrackingMode.trackAll;
       await context.sync();
-    });
-  } catch(e) {
-    console.log('Could not enable track changes:', e.message);
-  }
 
-  // Step 2: Apply all replacements — track changes is now active
-  for (const s of suggestions) {
-    try {
-      await Word.run(async function(context) {
-        const results = context.document.body.search(s.find, {
-          matchCase: true,
-          matchWholeWord: false
-        });
-        results.load('items');
-        await context.sync();
-
-        if (results.items.length > 0) {
-          results.items.forEach(function(range) {
-            range.insertText(s.replace, Word.InsertLocation.replace);
+      // Step 2: Apply all replacements in the same context
+      for (const s of suggestions) {
+        try {
+          const results = context.document.body.search(s.find, {
+            matchCase: true,
+            matchWholeWord: false
           });
+          results.load('items');
           await context.sync();
-          applied += results.items.length;
-        }
-      });
-    } catch(e) {
-      console.log('Tracked change failed for:', s.find, e.message);
-    }
-  }
 
-  // Step 3: Turn off track changes AFTER all replacements
-  try {
-    await Word.run(async function(context) {
+          if (results.items.length > 0) {
+            results.items.forEach(function(range) {
+              range.insertText(s.replace, Word.InsertLocation.replace);
+            });
+            await context.sync();
+            applied += results.items.length;
+          }
+        } catch(e) {
+          console.log('Tracked change failed for:', s.find, e.message);
+        }
+      }
+
+      // Step 3: Turn off track changes in the same context
       context.document.changeTrackingMode = Word.ChangeTrackingMode.off;
       await context.sync();
     });
   } catch(e) {
-    console.log('Could not turn off track changes:', e.message);
+    console.log('Error in applyTrackedChanges:', e.message);
   }
 
   return applied;
