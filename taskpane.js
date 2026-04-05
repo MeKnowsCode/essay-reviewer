@@ -20,8 +20,12 @@ Office.onReady(function(info) {
 
 function loadStoredSettings() {
   try {
-    const storedKey = localStorage.getItem('essay_reviewer_api_key') || '';
+    // Use Office roamingSettings for API key — encrypted, tied to Office account
+    // Falls back to localStorage for style examples (non-sensitive)
+    const settings = Office.context.roamingSettings;
+    const storedKey = settings.get('essay_reviewer_api_key') || '';
     const storedStyle = localStorage.getItem('essay_reviewer_style') || '';
+
     apiKey = storedKey;
     styleExamples = storedStyle;
 
@@ -48,9 +52,19 @@ function loadDocumentInfo() {
       const docText = document.getElementById('docText');
       if (!text.trim()) {
         dot.className = 'doc-dot empty';
-        docText.innerHTML = '<strong>Empty document</strong> — paste an essay to begin';
+        // Safe: no user data used here
+        docText.textContent = '';
+        const strong = document.createElement('strong');
+        strong.textContent = 'Empty document';
+        docText.appendChild(strong);
+        docText.appendChild(document.createTextNode(' — paste an essay to begin'));
       } else {
-        docText.innerHTML = '<strong>' + words.toLocaleString() + ' words</strong> · ready to review';
+        // Safe: words is a number, not user-controlled text
+        docText.textContent = '';
+        const strong = document.createElement('strong');
+        strong.textContent = words.toLocaleString() + ' words';
+        docText.appendChild(strong);
+        docText.appendChild(document.createTextNode(' · ready to review'));
       }
     });
   }).catch(function(e) {
@@ -63,12 +77,38 @@ function loadDocumentInfo() {
 function saveApiKey() {
   const val = document.getElementById('apiKeyInput').value.trim();
   if (!val) { showStatus('error', '❌ Please enter your API key.'); return; }
+  
+  // Validate key format before saving
+  if (!val.startsWith('sk-ant-') || val.length < 20) {
+    showStatus('error', '❌ Invalid API key format. Keys start with sk-ant-');
+    return;
+  }
+
   apiKey = val;
-  localStorage.setItem('essay_reviewer_api_key', val);
-  document.getElementById('keyStatus').textContent = '✅';
-  document.getElementById('apiKeyInput').value = '';
-  document.getElementById('apiKeyInput').placeholder = 'Key saved — paste new key to update';
-  showStatus('success', '✅ API key saved.');
+
+  // Store in Office roamingSettings — more secure than localStorage
+  // Encrypted and tied to the user's Office/Microsoft account
+  try {
+    const settings = Office.context.roamingSettings;
+    settings.set('essay_reviewer_api_key', val);
+    settings.saveAsync(function(result) {
+      if (result.status === Office.AsyncResultStatus.Succeeded) {
+        document.getElementById('keyStatus').textContent = '✅';
+        document.getElementById('apiKeyInput').value = '';
+        document.getElementById('apiKeyInput').placeholder = 'Key saved — paste new key to update';
+        showStatus('success', '✅ API key saved securely.');
+      } else {
+        showStatus('error', '❌ Could not save key. Please try again.');
+      }
+    });
+  } catch(e) {
+    // Fallback to localStorage if roamingSettings unavailable
+    localStorage.setItem('essay_reviewer_api_key', val);
+    document.getElementById('keyStatus').textContent = '✅';
+    document.getElementById('apiKeyInput').value = '';
+    document.getElementById('apiKeyInput').placeholder = 'Key saved — paste new key to update';
+    showStatus('success', '✅ API key saved.');
+  }
 }
 
 function openStyleModal() {
@@ -298,7 +338,7 @@ async function applyTrackedChanges(suggestions) {
 
   try {
     await Word.run(async function(context) {
-      // Step 1: Enable track changes
+      // Step 1: Enable track changes and sync FIRST
       context.document.changeTrackingMode = Word.ChangeTrackingMode.trackAll;
       await context.sync();
 
