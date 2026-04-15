@@ -328,8 +328,8 @@ async function applyFeedback(rawFeedback) {
     commentsAdded = await addMarginComments(feedback.comments);
   }
 
-  //return { comments: commentsAdded, changes: changesAdded };
-  return {  };
+  return { comments: commentsAdded, changes: changesAdded };
+  //return {  };
 }
 
 // ── Tracked Changes via Office.js ──────────────────────────
