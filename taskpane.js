@@ -241,12 +241,17 @@ async function callClaude(essayText) {
     })
   });
 
+  //if (!response.ok) {
+    //const err = await response.json();
+    //if (response.status === 401) throw new Error('Invalid API key. Please check your key in settings.');
+    //if (response.status === 429) throw new Error('Too many requests. Please wait a moment and try again.');
+    //throw new Error(err.error?.message || 'API error ' + response.status);
+  //}
   if (!response.ok) {
     const err = await response.json();
-    if (response.status === 401) throw new Error('Invalid API key. Please check your key in settings.');
-    if (response.status === 429) throw new Error('Too many requests. Please wait a moment and try again.');
-    throw new Error(err.error?.message || 'API error ' + response.status);
+    throw new Error('Status ' + response.status + ': ' + JSON.stringify(err));
   }
+
 
   const data = await response.json();
   return data.content[0].text;
