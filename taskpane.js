@@ -276,6 +276,7 @@ async function callClaude(essayText) {
 
 
   const data = await response.json();
+  console.log('API response:', JSON.stringify(data));
   return data.content[0].text;
 }
 
