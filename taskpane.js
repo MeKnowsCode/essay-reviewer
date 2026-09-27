@@ -276,8 +276,9 @@ async function callClaude(essayText) {
 
 
   const data = await response.json();
-  console.log('API response:', JSON.stringify(data));
-  return data.content[0].text;
+  const textBlock = data.content.find(function(block) { return block.type === 'text'; });
+  if (!textBlock) throw new Error('No text response from AI. Please try again.');
+  return textBlock.text;
 }
 
 // ── Prompt Builder ─────────────────────────────────────────
