@@ -8,6 +8,7 @@
 let intensity = 'balanced';
 let apiKey = '';
 let styleExamples = '';
+let resolvedModel = null;
 
 // ── Init ──────────────────────────────────────────────────
 
@@ -220,11 +221,35 @@ function getDocumentText() {
   });
 }
 
+// ── Model Discovery ────────────────────────────────────────
+
+async function pickBestModel() {
+  if (resolvedModel) return resolvedModel;
+  try {
+    const response = await fetch('https://sprightly-cannoli-4b4558.netlify.app/.netlify/functions/proxy?models=1', {
+      method: 'GET',
+      headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' }
+    });
+    if (response.ok) {
+      const data = await response.json();
+      const ids = (data.data || []).map(function(m) { return m.id; });
+      for (const tier of ['sonnet', 'opus', 'haiku']) {
+        const match = ids.find(function(id) { return id.includes(tier); });
+        if (match) { resolvedModel = match; return resolvedModel; }
+      }
+      if (ids.length > 0) { resolvedModel = ids[0]; return resolvedModel; }
+    }
+  } catch(e) { console.log('Model discovery failed:', e.message); }
+  resolvedModel = 'claude-sonnet-4-20250514';
+  return resolvedModel;
+}
+
 // ── Claude API ─────────────────────────────────────────────
 
 async function callClaude(essayText) {
   const focusAreas = getFocusAreas();
   const prompt = buildPrompt(essayText, focusAreas, intensity, styleExamples);
+  const model = await pickBestModel();
 
   const response = await fetch('https://sprightly-cannoli-4b4558.netlify.app/.netlify/functions/proxy', {
     method: 'POST',
@@ -235,7 +260,9 @@ async function callClaude(essayText) {
     },
     body: JSON.stringify({
       //model: 'claude-sonnet-4-20250514',
-      model: 'claude-3-5-sonnet-20241022',
+      //model: 'claude-3-5-sonnet-20241022',
+      // Making it model agnostic
+      model: model,
       max_tokens: 2500,
       messages: [{ role: 'user', content: prompt }]
     })
