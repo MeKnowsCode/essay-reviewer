@@ -42,7 +42,7 @@ function isValidAnthropicKey(key) {
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type, x-api-key, anthropic-version'
 };
 
@@ -53,6 +53,23 @@ exports.handler = async function(event) {
     return { statusCode: 200, headers: corsHeaders, body: '' };
   }
 
+  if (event.httpMethod === 'GET' && event.queryStringParameters?.models === '1') {
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/models', {
+      method: 'GET',
+      headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' }
+    });
+    const data = await response.json();
+    return {
+      statusCode: response.status,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    };
+  } catch(e) {
+    return { statusCode: 500, headers: corsHeaders, body: JSON.stringify({ error: e.message }) };
+  }
+}
+  
   // Only allow POST
   if (event.httpMethod !== 'POST') {
     return {
