@@ -259,8 +259,6 @@ async function callClaude(essayText) {
       'anthropic-version': '2023-06-01'
     },
     body: JSON.stringify({
-      //model: 'claude-sonnet-4-20250514',
-      //model: 'claude-3-5-sonnet-20241022',
       // Making it model agnostic
       model: model,
       max_tokens: 2500,
@@ -276,7 +274,10 @@ async function callClaude(essayText) {
   //}
   if (!response.ok) {
     const err = await response.json();
-    throw new Error('Status ' + response.status + ': ' + JSON.stringify(err));
+    if (response.status === 401) throw new Error('Invalid API key. Please check your key in settings.');
+    if (response.status === 429) throw new Error('Too many requests. Please wait a moment and try again.');
+    if (response.status === 404) { resolvedModel = null; throw new Error('Model not available. Please try again.'); }
+    throw new Error(err.error?.message || 'API error ' + response.status);
   }
 
 
@@ -362,7 +363,6 @@ async function applyFeedback(rawFeedback) {
   }
 
   return { comments: commentsAdded, changes: changesAdded };
-  //return {  };
 }
 
 // ── Tracked Changes via Office.js ──────────────────────────
