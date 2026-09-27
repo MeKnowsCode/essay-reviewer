@@ -53,6 +53,29 @@ exports.handler = async function(event) {
     return { statusCode: 200, headers: corsHeaders, body: '' };
   }
 
+  // Validate API key format before forwarding
+  const apiKey = event.headers['x-api-key'];
+  if (!isValidAnthropicKey(apiKey)) {
+    return {
+      statusCode: 401,
+      headers: corsHeaders,
+      body: JSON.stringify({ error: 'Invalid or missing API key.' })
+    };
+  }
+
+    // Rate limiting — get client IP
+  const ip = event.headers['x-forwarded-for']?.split(',')[0]?.trim()
+    || event.headers['client-ip']
+    || 'unknown';
+
+  if (!checkRateLimit(ip)) {
+    return {
+      statusCode: 429,
+      headers: corsHeaders,
+      body: JSON.stringify({ error: 'Too many requests. Please wait a minute and try again.' })
+    };
+  }
+
   if (event.httpMethod === 'GET' && event.queryStringParameters?.models === '1') {
   try {
     const response = await fetch('https://api.anthropic.com/v1/models', {
@@ -76,29 +99,6 @@ exports.handler = async function(event) {
       statusCode: 405,
       headers: corsHeaders,
       body: JSON.stringify({ error: 'Method not allowed' })
-    };
-  }
-
-  // Rate limiting — get client IP
-  const ip = event.headers['x-forwarded-for']?.split(',')[0]?.trim()
-    || event.headers['client-ip']
-    || 'unknown';
-
-  if (!checkRateLimit(ip)) {
-    return {
-      statusCode: 429,
-      headers: corsHeaders,
-      body: JSON.stringify({ error: 'Too many requests. Please wait a minute and try again.' })
-    };
-  }
-
-  // Validate API key format before forwarding
-  const apiKey = event.headers['x-api-key'];
-  if (!isValidAnthropicKey(apiKey)) {
-    return {
-      statusCode: 401,
-      headers: corsHeaders,
-      body: JSON.stringify({ error: 'Invalid or missing API key.' })
     };
   }
 
